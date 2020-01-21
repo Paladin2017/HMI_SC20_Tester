@@ -1,0 +1,7 @@
+# emacs
+.dir-locals.el
+# edit folder for soure insight project
+/edit
+
+# builder folder
+/build
