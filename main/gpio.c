@@ -14,8 +14,39 @@
 #include "string.h"
 #include "driver/gpio.h"
 
+static void GpioInit(gpio_num_t PortPin, int Mode);
 
+/** @brief  Write level to gpio pin
+  * @param  PortPin:Witch pin need to be write
+  * @param  Level:The level to be set
+  * @retval None
+*/
+void GpioWrite(gpio_num_t PortPin, uint8_t Level) {
+  GpioInit(PortPin, GPIO_MODE_OUTPUT);
+  gpio_set_level(PortPin, (uint32_t)Level);
+  vTaskDelay(50 / portTICK_PERIOD_MS);
+}
 
+/** @brief  Write level to gpio pin
+  * @param  PortPin:Witch pin need to be read
+  * @retval The level of the pin, 0 for low, 1 for high
+*/
+uint8_t GpioRead(gpio_num_t PortPin) {
+  int iolevel;
+  GpioInit(PortPin, GPIO_MODE_INPUT);
+  vTaskDelay(50 / portTICK_PERIOD_MS);
+  iolevel = gpio_get_level(PortPin);
+  if(iolevel == 0)
+    return 0;
+  else
+    return 1;
+}
+
+/** @brief  Initilize the gpio pin to the specific mode, for input will enable internal pull up
+  * @param  PortPin:Witch pin need to be initilized
+  * @param  Mode:Mode to be set. etc GPIO_MODE_OUTPUT or GPIO_MODE_INPUT
+  * @retval The level of the pin, 0 for low, 1 for high
+*/
 void GpioInit(gpio_num_t PortPin, int Mode) {
   gpio_config_t io_conf;
 
@@ -41,14 +72,3 @@ void GpioInit(gpio_num_t PortPin, int Mode) {
   gpio_config(&io_conf);
 }
 
-int GpioRead(gpio_num_t PortPin) {
-  int iolevel = gpio_get_level(PortPin);
-  if(iolevel == 0)
-    return 0;
-  else
-    return 1;
-}
-
-void GpioWrite(gpio_num_t PortPin, uint32_t Level) {
-  gpio_set_level(PortPin, Level);
-}

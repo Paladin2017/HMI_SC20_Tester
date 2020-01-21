@@ -75,16 +75,18 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
   uint16_t tmp_u16;
 	uint16_t tmp_len = (tmp_head + buffer_size - tmp_tail) % buffer_size;
 	
-	if(tmp_len > 8) {
+	while(tmp_len > 8) {
 		if(pData[tmp_tail] != 0xaa) {
       tmp_tail = (tmp_tail + 1) % buffer_size;
       tmp_len--;
+      *Tail = tmp_tail;
       continue;
 		}
 
     if(pData[(tmp_tail + 1) % buffer_size] != 0x55) {
       tmp_tail = (tmp_tail + 2) % buffer_size;
       tmp_len = tmp_len - 2;
+      *Tail = tmp_tail;
       continue;
 		}
     // Get command length bytes
@@ -95,6 +97,7 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
     if((cmd_len_low ^ cmd_len_high) != pData[(tmp_tail + 5) % buffer_size]) {
       tmp_tail = (tmp_tail + 2) % buffer_size;
       tmp_len = tmp_len - 2;
+      *Tail = tmp_tail;
       continue;
     }
 
@@ -103,6 +106,7 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
     if(cmd_len > 256) {
       tmp_tail = (tmp_tail + 2) % buffer_size;
       tmp_len = tmp_len - 2;
+      *Tail = tmp_tail;
       continue;
     }
     if(cmd_len > tmp_len + 8)
@@ -130,6 +134,7 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
     if(src_checksum != calculate_checksum) {
       tmp_tail = (tmp_tail + 2) % buffer_size;
       tmp_len = tmp_len - 2;
+      *Tail = tmp_tail;
       continue;
     }
 
