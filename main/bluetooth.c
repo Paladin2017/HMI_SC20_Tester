@@ -18,7 +18,10 @@
 #include "esp_spp_api.h"
 #include "string.h"
 #include "protocal.h"
+<<<<<<< HEAD
 #include "camera/command.h"
+=======
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 
 #include "time.h"
 #include "sys/time.h"
@@ -29,6 +32,43 @@
 
 static int bt_push_data(uint8_t *pdata, int len);
 
+<<<<<<< HEAD
+=======
+typedef enum {
+    M_REPORT_VERSIONS = 0x1,
+    S_REPORT_VERSIONS,
+    M_CAMERA_GET_AWB = 0x3,
+    S_CAMERA_GET_AWB_ACK,
+    M_CAMERA_SET_AWB = 0x5,
+    S_CAMERA_SET_AWB_ACK,
+    M_CAMERA_SET_ACE = 0x7,
+    S_CAMERA_SET_ACE_ACK,
+    M_CAMERA_SET_IMG_SIZE = 0x9,
+    S_CAMERA_SET_IMG_SIZE_ACK,
+    M_CAMERA_SET_QUALITY = 0xb,
+    S_CAMERA_SET_QUALITY_ACK,
+    M_CAMERA_GET_IMG = 0xd,
+    S_CAMERA_IMG_ACK,
+    M_UPDATE_MOUDLE = 0xf,
+    S_UPDATRE_ACK,
+    M_SET_BT_NAME = 0x11,
+    S_SET_BT_NAME_ACK,
+    M_REPORT_BT_NAME = 0x13,
+    S_REPORT_BT_NAME_ACK,
+    M_REPORT_BT_MAC = 0x15,
+    S_REPORT_BT_MAC_ACK,
+    M_SET_CAMERA_LIGHT = 0x17,
+    S_SET_CAMERA_LIGHT_ACK,
+    M_REPORT_CAMERA_LIGHT = 0x19,
+    S_REPORT_CAMERA_LIGHT_ACK,
+    M_REPORT_CAMERA_STATU = 0x1b,
+    S_REPORT_CAMERA_STATU_ACK,
+
+    S_CAMERA_INIT_FAIL = 0xfd,
+    S_RECV_FAIL = 0xff,
+}BT_CMD_E;
+
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 
 uint8_t bt_recv_buff[1024];
 uint16_t bt_recv_read_len;
@@ -42,7 +82,11 @@ uint16_t bt_recv_tail;
   * @retval None
   */
 void bt_send_pack(uint8_t *pData, int Len) {
+<<<<<<< HEAD
   ssp_write_data(pData, Len);
+=======
+
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 }
 
 /**
@@ -85,6 +129,10 @@ static void bt_rx_task(void *arg)
         if(Parse(bt_recv_buff, &bt_recv_head, &bt_recv_tail, sizeof(bt_recv_buff), process_buff) > 0) {
           eventId = process_buff[8];
           switch(eventId) {
+<<<<<<< HEAD
+=======
+            
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
             //设置相机曝光时间
             case M_CAMERA_SET_ACE:
                 Cmd_CameraSetAEC((parse_buff[10] << 8) | parse_buff[11]);
@@ -120,6 +168,7 @@ static void bt_rx_task(void *arg)
     free(process_buff);
 }
 
+<<<<<<< HEAD
 /**
   * @brief  Push datas to the ring buffer 
   * @param  pdata:The Data to be pushed
@@ -127,16 +176,27 @@ static void bt_rx_task(void *arg)
   * @retval The amount of the data have been pushed
   */
 static int bt_push_data(uint8_t *pData, int Len) {
+=======
+static int bt_push_data(uint8_t *pdata, int len) {
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
   int i;
   int data_pushed;
   int next_head;
   
   data_pushed = 0;
+<<<<<<< HEAD
   for(i=0;i<Len;i++) {
     next_head = bt_recv_head + 1 % sizeof(bt_recv_buff);
     if(next_head == bt_recv_tail)
       break;
     bt_recv_buff[bt_recv_head] = pData[i];
+=======
+  for(i=0;i<len;i++) {
+    next_head = bt_recv_head + 1 % sizeof(bt_recv_buff);
+    if(next_head == bt_recv_tail)
+      break;
+    bt_recv_buff[bt_recv_head] = pdata[i];
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
     bt_recv_head = next_head;
     data_pushed++;
   }
@@ -236,10 +296,13 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
     }
 }
 
+<<<<<<< HEAD
 /**
   * @brief  Initialize the bluetooth and data process thread
   * @retval None
   */
+=======
+>>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 void bluetooth_init(void)
 {
     esp_err_t ret = nvs_flash_init();
