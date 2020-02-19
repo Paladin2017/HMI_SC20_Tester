@@ -13,80 +13,81 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_bt.h"
+#include "esp_bt_main.h"
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
 #include "esp_spp_api.h"
+#include "esp_vfs.h"
 #include "string.h"
 #include "protocal.h"
-<<<<<<< HEAD
-#include "camera/command.h"
-=======
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
+
+#include "../components/camera/Command.h"
 
 #include "time.h"
 #include "sys/time.h"
 
+static const char* TAG = "BT";
+
 #define SPP_TAG "HMI_TESTER"
 #define SPP_SERVER_NAME "HMI_BT"
 #define EXAMPLE_DEVICE_NAME "ESP_HMI_HOST"
+#define SPP_DATA_LEN 100
 
+#define SPP_PACK_MAX_SIZE 496
 static int bt_push_data(uint8_t *pdata, int len);
-
-<<<<<<< HEAD
-=======
-typedef enum {
-    M_REPORT_VERSIONS = 0x1,
-    S_REPORT_VERSIONS,
-    M_CAMERA_GET_AWB = 0x3,
-    S_CAMERA_GET_AWB_ACK,
-    M_CAMERA_SET_AWB = 0x5,
-    S_CAMERA_SET_AWB_ACK,
-    M_CAMERA_SET_ACE = 0x7,
-    S_CAMERA_SET_ACE_ACK,
-    M_CAMERA_SET_IMG_SIZE = 0x9,
-    S_CAMERA_SET_IMG_SIZE_ACK,
-    M_CAMERA_SET_QUALITY = 0xb,
-    S_CAMERA_SET_QUALITY_ACK,
-    M_CAMERA_GET_IMG = 0xd,
-    S_CAMERA_IMG_ACK,
-    M_UPDATE_MOUDLE = 0xf,
-    S_UPDATRE_ACK,
-    M_SET_BT_NAME = 0x11,
-    S_SET_BT_NAME_ACK,
-    M_REPORT_BT_NAME = 0x13,
-    S_REPORT_BT_NAME_ACK,
-    M_REPORT_BT_MAC = 0x15,
-    S_REPORT_BT_MAC_ACK,
-    M_SET_CAMERA_LIGHT = 0x17,
-    S_SET_CAMERA_LIGHT_ACK,
-    M_REPORT_CAMERA_LIGHT = 0x19,
-    S_REPORT_CAMERA_LIGHT_ACK,
-    M_REPORT_CAMERA_STATU = 0x1b,
-    S_REPORT_CAMERA_STATU_ACK,
-
-    S_CAMERA_INIT_FAIL = 0xfd,
-    S_RECV_FAIL = 0xff,
-}BT_CMD_E;
-
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 
 uint8_t bt_recv_buff[1024];
 uint16_t bt_recv_read_len;
 uint16_t bt_recv_head;
 uint16_t bt_recv_tail;
+int spp_file_handler = -1;
+bool ssp_send_pack_complete = false;
+static uint8_t spp_data[SPP_DATA_LEN];
+static xQueueHandle process_data_push_queue = NULL;
 
 /**
   * @brief  Send data via bluetooth
   * @param  pData:The buffer of the data
   * @param  Len:The length of the data
-  * @retval None
+  * @retval true for success, false for fail
   */
-void bt_send_pack(uint8_t *pData, int Len) {
-<<<<<<< HEAD
-  ssp_write_data(pData, Len);
-=======
+bool bt_send_pack(uint8_t *pData, int Len) {
+  int cur_byte_sent;
+  int byte_sent;
+  int byte_to_send;
+  int send_index;
+  uint32_t total_send;
 
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
+  ESP_LOGI(TAG, "BT Data step1");
+  
+  if(spp_file_handler < 0)
+    return false;
+
+  total_send = Len;
+  byte_sent = 0;
+  send_index = 0;
+
+  ESP_LOGI(TAG, "BT Data step2");
+  while(Len > 0) {
+    if(Len >= SPP_PACK_MAX_SIZE) 
+      byte_to_send = SPP_PACK_MAX_SIZE;
+    else
+      byte_to_send = Len;
+    ESP_LOGI(TAG, "BT send data:%d", byte_to_send);
+    do {
+      cur_byte_sent = write (spp_file_handler, &pData[send_index], byte_to_send);
+      if(cur_byte_sent == byte_to_send) {
+        byte_sent += cur_byte_sent;
+        break;
+      }
+      vTaskDelay( 20 / portTICK_RATE_MS );
+    }while(1);
+    
+    Len = Len - byte_to_send;
+    send_index = send_index + byte_to_send;
+  }
+  //ESP_LOGI(SPP_TAG, "Send Len = %d", byte_sent);
+  return (byte_sent == total_send)?true:false;
 }
 
 /**
@@ -111,92 +112,53 @@ void bt_send_protocal_data(uint8_t EventID, uint8_t OpCode, uint8_t *pData, int 
   int send_len;
   pack_buff[0] = EventID;
   pack_buff[1] = OpCode;
-  memcpy((byte*)&pack_buff[2], pData, Len);
+  memcpy((uint8_t*)&pack_buff[2], pData, Len);
   send_len = SetupPack(pack_buff, Len + 2, send_buff);
   bt_send_pack(send_buff, send_len);
+  free(pack_buff);
+  free(send_buff);
 }
 
 /**
   * @brief  Bluetooth receive data process thread
   * @retval None
   */
-static void bt_rx_task(void *arg)
+static void bt_data_process_thread(void *arg)
 {
-    static const char *RX_TASK_TAG = "BT_RX_TASK";
-    uint8_t eventId;
-    uint8_t* process_buff = (uint8_t*) malloc(512);
-    while (1) {
-        if(Parse(bt_recv_buff, &bt_recv_head, &bt_recv_tail, sizeof(bt_recv_buff), process_buff) > 0) {
-          eventId = process_buff[8];
-          switch(eventId) {
-<<<<<<< HEAD
-=======
-            
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
-            //设置相机曝光时间
-            case M_CAMERA_SET_ACE:
-                Cmd_CameraSetAEC((parse_buff[10] << 8) | parse_buff[11]);
-                break;
-            // 设置图像大小
-            case M_CAMERA_SET_IMG_SIZE:
-                Cmd_CameraSetImgSize(parse_buff[10]);
-                break;
-            // 设置图像质量
-            case M_CAMERA_SET_QUALITY:
-                Cmd_CameraSetQuality(parse_buff[10]);
-                break;
-
-            // Take a image
-            case M_CAMERA_GET_IMG:
-                Cmd_ReportImg(&parse_buff[8], len);
-                break;
-            case M_REPORT_BT_MAC:
-                report_bt_mac();
-                break;
-            case M_SET_CAMERA_LIGHT:
-                Cmd_CameraSetLight(&parse_buff[8], len);
-                break;
-            case M_REPORT_CAMERA_LIGHT:
-                Cmd_CameraReportLight(&parse_buff[8], len);
-                break;
-            case M_REPORT_CAMERA_STATU:
-                Cmd_CameraReportStatu();
-                break;
-          }
-        }
+  int len;
+  static const char *RX_TASK_TAG = "BT_RX_TASK";
+  uint8_t eventId;
+  uint8_t opcode;
+  uint8_t* process_buff = (uint8_t*) malloc(512);
+  while (1) {
+    xQueueReceive(process_data_push_queue, &len, 300 / portTICK_RATE_MS);
+    if(Parse(bt_recv_buff, &bt_recv_head, &bt_recv_tail, sizeof(bt_recv_buff), process_buff) > 0) {
+      eventId = process_buff[8];
+      opcode = process_buff[9];
+      bt_command_process(eventId, opcode);
     }
-    free(process_buff);
+  }
+  free(process_buff);
 }
 
-<<<<<<< HEAD
 /**
   * @brief  Push datas to the ring buffer 
-  * @param  pdata:The Data to be pushed
+  * @param  pData:The Data to be pushed
   * @param  Len:The length of the data
   * @retval The amount of the data have been pushed
   */
 static int bt_push_data(uint8_t *pData, int Len) {
-=======
-static int bt_push_data(uint8_t *pdata, int len) {
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
   int i;
   int data_pushed;
   int next_head;
   
   data_pushed = 0;
-<<<<<<< HEAD
   for(i=0;i<Len;i++) {
     next_head = bt_recv_head + 1 % sizeof(bt_recv_buff);
     if(next_head == bt_recv_tail)
       break;
     bt_recv_buff[bt_recv_head] = pData[i];
-=======
-  for(i=0;i<len;i++) {
-    next_head = bt_recv_head + 1 % sizeof(bt_recv_buff);
-    if(next_head == bt_recv_tail)
-      break;
-    bt_recv_buff[bt_recv_head] = pdata[i];
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
+
     bt_recv_head = next_head;
     data_pushed++;
   }
@@ -254,6 +216,37 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
     return;
 }
 
+/**
+  * @brief  Bluetooth receive thread
+  * @param  param
+  * @retval None
+  */
+static void spp_read_thread(void * param)
+{
+    int push_size;
+    int size = 0;
+    int fd = (int)param;
+    spp_file_handler = fd;
+    do {
+        size = read (fd, spp_data, SPP_DATA_LEN);
+        if (size == -1) {
+          ESP_LOGI(TAG, "Close bt");
+          break;
+        }
+        
+        if (size == 0) {
+          /*read fail due to there is no data, retry after 1s*/
+          vTaskDelay(300 / portTICK_PERIOD_MS);
+        }
+        else if(size > 0) {
+          push_size = bt_push_data(spp_data, size);
+          xQueueSend(process_data_push_queue, (void*)&push_size, 10 / portTICK_RATE_MS);
+        }
+    } while (1);
+    vTaskDelete(NULL);
+}
+
+
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 {
     switch (event) {
@@ -261,7 +254,7 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         ESP_LOGI(SPP_TAG, "ESP_SPP_INIT_EVT");
         esp_bt_dev_set_device_name(EXAMPLE_DEVICE_NAME);
         esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        esp_spp_start_srv(sec_mask,role_slave, 0, SPP_SERVER_NAME);
+        esp_spp_start_srv(ESP_SPP_SEC_AUTHENTICATE,ESP_SPP_ROLE_SLAVE, 0, SPP_SERVER_NAME);
         break;
     case ESP_SPP_DISCOVERY_COMP_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_DISCOVERY_COMP_EVT");
@@ -271,6 +264,7 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_CLOSE_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CLOSE_EVT");
+        spp_file_handler = -1;
         break;
     case ESP_SPP_START_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_START_EVT");
@@ -279,7 +273,6 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         ESP_LOGI(SPP_TAG, "ESP_SPP_CL_INIT_EVT");
         break;
     case ESP_SPP_DATA_IND_EVT:
-        bt_push_data(param->data_ind.data, param->data_ind.len);
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
@@ -289,81 +282,81 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_SRV_OPEN_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_SRV_OPEN_EVT");
-        gettimeofday(&time_old, NULL);
+        xTaskCreate(spp_read_thread, "bt receive thread", 8192, param->srv_open.fd, configMAX_PRIORITIES, NULL);
         break;
     default:
         break;
     }
 }
 
-<<<<<<< HEAD
 /**
   * @brief  Initialize the bluetooth and data process thread
   * @retval None
   */
-=======
->>>>>>> af21bd3355004ae4844fb394ae3141a2aad7390e
 void bluetooth_init(void)
 {
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK( ret );
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK( ret );
 
-    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
+  ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
 
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+  if ((ret = esp_bt_controller_init(&bt_cfg)) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s initialize controller failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  if ((ret = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT)) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s enable controller failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_bluedroid_init()) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s initialize bluedroid failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  if ((ret = esp_bluedroid_init()) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s initialize bluedroid failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_bluedroid_enable()) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s enable bluedroid failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  if ((ret = esp_bluedroid_enable()) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s enable bluedroid failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_bt_gap_register_callback(esp_bt_gap_cb)) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s gap register failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  if ((ret = esp_bt_gap_register_callback(esp_bt_gap_cb)) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s gap register failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_spp_register_callback(esp_spp_cb)) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s spp register failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  if ((ret = esp_spp_register_callback(esp_spp_cb)) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s spp register failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
-    if ((ret = esp_spp_init(ESP_SPP_MODE_CB)) != ESP_OK) {
-        ESP_LOGE(SPP_TAG, "%s spp init failed: %s\n", __func__, esp_err_to_name(ret));
-        return;
-    }
+  esp_spp_vfs_register();
+  
+  if ((ret = esp_spp_init(ESP_SPP_MODE_VFS)) != ESP_OK) {
+      ESP_LOGE(SPP_TAG, "%s spp init failed: %s\n", __func__, esp_err_to_name(ret));
+      return;
+  }
 
 #if (CONFIG_BT_SSP_ENABLED == true)
-    /* Set default parameters for Secure Simple Pairing */
-    esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
-    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
-    esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+  /* Set default parameters for Secure Simple Pairing */
+  esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
+  esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
+  esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
 #endif
 
-    /*
-     * Set default parameters for Legacy Pairing
-     * Use variable pin, input pin code when pairing
-     */
-    esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
-    esp_bt_pin_code_t pin_code;
-    esp_bt_gap_set_pin(pin_type, 0, pin_code);
+  /*
+   * Set default parameters for Legacy Pairing
+   * Use variable pin, input pin code when pairing
+   */
+  esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
+  esp_bt_pin_code_t pin_code;
+  esp_bt_gap_set_pin(pin_type, 0, pin_code);
 
-    xTaskCreate(bt_rx_task, "bt_rx_task", 8192*2, NULL, configMAX_PRIORITIES, NULL);
+  process_data_push_queue = xQueueCreate(1, sizeof(int));
+  xTaskCreate(bt_data_process_thread, "bt_data_process", 8192, NULL, configMAX_PRIORITIES, NULL);
 }

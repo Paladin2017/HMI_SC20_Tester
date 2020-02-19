@@ -14,6 +14,8 @@
 #include "string.h"
 #include "driver/gpio.h"
 
+static const char* TAG = "Protocal";
+
 /** @brief  Setup a pack of data use the protocal
   * @param  pSourceData:The buffer of the source buffer
   * @param  SrcLen:The length of the source data
@@ -35,11 +37,11 @@ int SetupPack(uint8_t *pSourceData, uint16_t SrcLen, uint8_t *pDesData) {
 	
 	// Calculator check sum
 	checksum = 0;
-	for(j=0;j<(SrcLen-1);j++) {
+	for(j=0;j<(SrcLen-1);j=j+2) {
 		tmp_u16 = ((uint16_t)pSourceData[j] << 8) | pSourceData[j+1];
 		checksum = checksum + tmp_u16;
 	}
-  if(SrcLen % 2 != 0)
+  if((SrcLen % 2) != 0)
     checksum += pSourceData[SrcLen - 1];
   while(checksum > 0xffff)
     checksum = ((checksum >> 16) & 0xffff) + (checksum & 0xffff);
@@ -77,6 +79,7 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
 	
 	while(tmp_len > 8) {
 		if(pData[tmp_tail] != 0xaa) {
+      ESP_LOGI(TAG, "Data:%02X", pData[tmp_tail]);
       tmp_tail = (tmp_tail + 1) % buffer_size;
       tmp_len--;
       *Tail = tmp_tail;
@@ -90,8 +93,8 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
       continue;
 		}
     // Get command length bytes
-    cmd_len_low = pData[(tmp_tail + 2) % buffer_size];
-    cmd_len_high = pData[(tmp_tail + 3) % buffer_size];
+    cmd_len_high = pData[(tmp_tail + 2) % buffer_size];
+    cmd_len_low = pData[(tmp_tail + 3) % buffer_size];
 
     // Verify command length
     if((cmd_len_low ^ cmd_len_high) != pData[(tmp_tail + 5) % buffer_size]) {
@@ -109,7 +112,7 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
       *Tail = tmp_tail;
       continue;
     }
-    if(cmd_len > tmp_len + 8)
+    if((cmd_len + 8) > tmp_len)
       return;
 
     // Copy datas to the destination buffer
@@ -121,20 +124,21 @@ int Parse(uint8_t *pSourceData, uint16_t *Head, uint16_t *Tail, uint16_t buffer_
 
     // Verify datas
     calculate_checksum = 0;
-    for(i=8;i<(cmd_len + 8 - 1);i++) {
-      tmp_u16 = ((uint16_t)pData[i] << 8) | pData[i+1];
+    for(i=8;i<(cmd_len + 8 - 1);i=i+2) {
+      tmp_u16 = ((uint16_t)pParseData[i] << 8) | pParseData[i + 1];
 		  calculate_checksum = calculate_checksum + tmp_u16;
     }
     if((cmd_len % 2) != 0)
-      calculate_checksum = calculate_checksum + pData[cmd_len + 8 - 1];
+      calculate_checksum = calculate_checksum + pParseData[cmd_len + 8 - 1];
     while(calculate_checksum > 0xffff)
-    calculate_checksum = ((calculate_checksum >> 16) & 0xffff) + (calculate_checksum & 0xffff);
+      calculate_checksum = ((calculate_checksum >> 16) & 0xffff) + (calculate_checksum & 0xffff);
     calculate_checksum = (~calculate_checksum) & 0xffff;
-    src_checksum = ((uint16_t)pData[6] << 8) | pData[7];
+    src_checksum = ((uint16_t)pParseData[6] << 8) | pParseData[7];
     if(src_checksum != calculate_checksum) {
       tmp_tail = (tmp_tail + 2) % buffer_size;
       tmp_len = tmp_len - 2;
       *Tail = tmp_tail;
+      ESP_LOGI(TAG, "Verify fail");
       continue;
     }
 

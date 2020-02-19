@@ -15,8 +15,11 @@
 #include "driver/gpio.h"
 #include "protocal.h"
 
-static int push_data(uint8_t *pdata, int len);
+#include "../components/maincontroler/Command.h"
 
+static int uart_push_data(uint8_t *pdata, int len);
+
+static const char* TAG = "Uart2";
 
 #define THIS_UART	UART_NUM_2
 
@@ -59,18 +62,31 @@ static void uart_rx_task(void *arg)
     static const char *RX_TASK_TAG = "RX_TASK";
     uint8_t* data = (uint8_t*) malloc(512+1);
     uint8_t* process_buff = (uint8_t*) malloc(512);
+    char *string = (char*) malloc(128);
+    uint8_t event_id;
+    uint8_t opcode;
+    uart_flush_buffer();
     while (1) {
-        const int rxBytes = uart_read_bytes(THIS_UART, data, RX_BUF_SIZE, 50 / portTICK_RATE_MS);
+        int rxBytes = uart_read_bytes(THIS_UART, data, RX_BUF_SIZE, 50 / portTICK_RATE_MS);
         if (rxBytes > 0) {
+          ESP_LOGI(TAG, "Data Len:%02X", rxBytes);
+          string[0] = 0;
+          //for(int i=0;i<rxBytes;i++)
+          //{
+          //  sprintf((char*)process_buff, "%02X ", data[i]);
+          //  strcat(string, (char*)process_buff);
+          //}
+          //ESP_LOGI(TAG, "Datas:%s", string);
           if(uart_push_data(data, rxBytes) != rxBytes) {
+            ESP_LOGI(TAG, "Flush");
             uart_flush_buffer();
             continue;
           }
         }
         if(Parse(recv_buff, &recv_head, &recv_tail, sizeof(recv_buff), process_buff) > 0) {
-          switch(process_buff[8]) {
-            
-          }
+          event_id = process_buff[8];
+          opcode = process_buff[9];
+          hmi_command_process(event_id, opcode);
         }
     }
     free(process_buff);

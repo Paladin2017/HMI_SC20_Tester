@@ -14,9 +14,14 @@
 #include "string.h"
 #include "driver/gpio.h"
 #include "uart.h"
-
+#include "bluetooth.h"
+#include "../components/maincontroler/Command.h"
+#include "../components/camera/Command.h"
 
 void app_main(void)
 {
-    uart_init();
+  bt_command_init();
+  hmi_command_init();
+  uart_init();
+  bluetooth_init();
 }

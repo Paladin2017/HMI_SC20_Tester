@@ -12,14 +12,8 @@
 #include "esp_log.h"
 #include "string.h"
 #include "Command.h"
-
-
-#define BITS32_TO_BYTES(u32bit, buff, index) do { \
-    buff[index++] = (uint8_t)(u32bit >> 24); \
-    buff[index++] = (uint8_t)(u32bit >> 16); \
-    buff[index++] = (uint8_t)(u32bit >> 8); \
-    buff[index++] = (uint8_t)(u32bit); \
-    }while(0)
+#include "../../main/protocal.h"
+#include "../../main/uart.h"
 
 /*  @brief  Command process
  *  @param  pPara:The pointer to the private process buffer
@@ -83,10 +77,7 @@ void cmd_0701_reack(void *pPara) {
   status_buff[i++] = (uint8_t)((uint16_t)fValue);
 
   // LaserPower
-  status_buff[i++] = (uint8_t)(LaserPower >> 24);
-  status_buff[i++] = (uint8_t)(LaserPower >> 16);
-  status_buff[i++] = (uint8_t)(LaserPower >> 8);
-  status_buff[i++] = (uint8_t)(LaserPower);
+  BITS32_TO_BYTES(LaserPower, status_buff, i);
 
   // RPM of CNC
   RPM = 0;
@@ -102,12 +93,58 @@ void cmd_0701_reack(void *pPara) {
   status_buff[i++] = 0;
 
   // executor type
-  status_buff[i++] = 0x96;
+  //status_buff[i++] = 0x96;
+  status_buff[i++] = 0x03;
 
   send_len = SetupPack(status_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
 
   free(pack_buff);
+  free(status_buff);
+}
+
+/*  @brief  Command process
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */ 
+void cmd_0702_process(void *pPara) {
+  
+}
+
+/*  @brief  Specific command reack
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */
+void cmd_0702_reack(void *pPara) {
+  int32_t tmp;
+  uint16_t i = 0;
+  int send_len;
+  uint8_t* status_buff = (uint8_t*) malloc(128);
+  uint8_t* pack_buff = (uint8_t*) malloc(128);
+
+  // EventID
+  status_buff[i++] = EID_STATUS_RESP;
+
+  // operation code
+  status_buff[i++] = 0x02;
+
+  // Falut flag
+  tmp = (int32_t) (0);
+  BITS32_TO_BYTES(tmp, status_buff, i);
+
+  // Data source
+  status_buff[i++] = 3;
+
+  // Data position
+  tmp = (int32_t) (0);
+  BITS32_TO_BYTES(tmp, status_buff, i);
+
+  send_len = SetupPack(status_buff, i, pack_buff);
+
+  uart_send_pack(pack_buff, send_len);
+
+  free(pack_buff);
+  free(status_buff);
 }
 

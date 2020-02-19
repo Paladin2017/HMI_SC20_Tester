@@ -1,6 +1,8 @@
 #ifndef _BT_COMMAND_H_
 #define _BT_COMMAND_H_
 
+#include "../../main/bluetooth.h"
+
 typedef enum {
     M_REPORT_VERSIONS = 0x1,
     S_REPORT_VERSIONS,
@@ -34,5 +36,8 @@ typedef enum {
     S_CAMERA_INIT_FAIL = 0xfd,
     S_RECV_FAIL = 0xff,
 }BT_CMD_E;
+
+extern void bt_command_process(uint8_t EventID, uint8_t Opcode);
+extern void bt_command_init();
 
 #endif

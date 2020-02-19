@@ -33,4 +33,16 @@
 #define EID_LASER_CALIBRATE_REQ   0x13
 #define EID_LASER_CALIBRATE_RESP  0x14
 
+// Bit2Bytes macro
+#define BITS32_TO_BYTES(u32bit, buff, index) do { \
+    buff[index++] = (uint8_t)(u32bit >> 24); \
+    buff[index++] = (uint8_t)(u32bit >> 16); \
+    buff[index++] = (uint8_t)(u32bit >> 8); \
+    buff[index++] = (uint8_t)(u32bit); \
+    }while(0)
+
+extern void hmi_command_process(uint8_t EventID, uint8_t Opcode);
+extern void hmi_command_init();
+extern void GeneralReack(uint8_t EventID, uint8_t Opcode, uint8_t Result);
+
 #endif
