@@ -28,10 +28,10 @@ static const int RX_BUF_SIZE = 512;
 #define TXD_PIN (GPIO_NUM_17)
 #define RXD_PIN (GPIO_NUM_16)
 
-uint8_t recv_buff[1024];
+uint8_t uart_recv_buff[2048];
 uint16_t recv_read_len;
-uint16_t recv_head;
-uint16_t recv_tail;
+uint16_t uart_recv_head;
+uint16_t uart_recv_tail;
 
 void init(void) {
     const uart_config_t uart_config = {
@@ -54,7 +54,7 @@ void uart_send_pack(uint8_t *pData, int len) {
 }
 
 static void uart_flush_buffer() {
-  recv_head = recv_tail = 0;
+  uart_recv_head = uart_recv_tail = 0;
 }
 
 static void uart_rx_task(void *arg)
@@ -67,27 +67,16 @@ static void uart_rx_task(void *arg)
     uint8_t opcode;
     uart_flush_buffer();
     while (1) {
-        int rxBytes = uart_read_bytes(THIS_UART, data, RX_BUF_SIZE, 50 / portTICK_RATE_MS);
-        if (rxBytes > 0) {
-          ESP_LOGI(TAG, "Data Len:%02X", rxBytes);
-          string[0] = 0;
-          //for(int i=0;i<rxBytes;i++)
-          //{
-          //  sprintf((char*)process_buff, "%02X ", data[i]);
-          //  strcat(string, (char*)process_buff);
-          //}
-          //ESP_LOGI(TAG, "Datas:%s", string);
-          if(uart_push_data(data, rxBytes) != rxBytes) {
-            ESP_LOGI(TAG, "Flush");
-            uart_flush_buffer();
-            continue;
-          }
+      int rxBytes = uart_read_bytes(THIS_UART, data, RX_BUF_SIZE, 50 / portTICK_RATE_MS);
+      if (rxBytes > 0) {
+        //ESP_LOGI(TAG, "Data Len:%02X", rxBytes);
+        string[0] = 0;
+        if(uart_push_data(data, rxBytes) != rxBytes) {
+          ESP_LOGI(TAG, "Flush");
+          uart_flush_buffer();
+          continue;
         }
-        if(Parse(recv_buff, &recv_head, &recv_tail, sizeof(recv_buff), process_buff) > 0) {
-          event_id = process_buff[8];
-          opcode = process_buff[9];
-          hmi_command_process(event_id, opcode);
-        }
+      }
     }
     free(process_buff);
     free(data);
@@ -100,11 +89,11 @@ static int uart_push_data(uint8_t *pdata, int len) {
   
   data_pushed = 0;
   for(i=0;i<len;i++) {
-    next_head = recv_head + 1 % sizeof(recv_buff);
-    if(next_head == recv_tail)
+    next_head = (uart_recv_head + 1) % sizeof(uart_recv_buff);
+    if(next_head == uart_recv_tail)
       break;
-    recv_buff[recv_head] = pdata[i];
-    recv_head = next_head;
+    uart_recv_buff[uart_recv_head] = pdata[i];
+    uart_recv_head = next_head;
     data_pushed++;
   }
   return data_pushed;

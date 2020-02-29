@@ -25,7 +25,7 @@ static uint8_t command_table_count;
 static uint8_t process_buff[1024];
 
 static const strHMICommand bt_command_table[] = {
-  {M_CAMERA_GET_IMG,        0x01, Cmd_0D01_Process, NULL},
+  {M_CAMERA_GET_IMG,        0x00, Cmd_0D00_Process, NULL},
   {M_CAMERA_GET_AWB,        0x00, Cmd_0300_Process, Cmd_0300_Reack},
   {M_CAMERA_SET_AWB,        0x00, Cmd_0500_Process, Cmd_0500_Reack},
   {M_SET_CAMERA_LIGHT,      0x00, Cmd_1700_Process, Cmd_1700_Reack},
@@ -44,6 +44,7 @@ void bt_command_process(uint8_t EventID, uint8_t Opcode) {
       bt_command_table[i].pProcessFun(process_buff);
       if(bt_command_table[i].pReackFun != NULL)
         bt_command_table[i].pReackFun(process_buff);
+      break;
     }
   }
 }

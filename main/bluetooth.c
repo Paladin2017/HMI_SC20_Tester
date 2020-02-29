@@ -43,7 +43,7 @@ uint16_t bt_recv_tail;
 int spp_file_handler = -1;
 bool ssp_send_pack_complete = false;
 static uint8_t spp_data[SPP_DATA_LEN];
-static xQueueHandle process_data_push_queue = NULL;
+//static xQueueHandle process_data_push_queue = NULL;
 
 /**
   * @brief  Send data via bluetooth
@@ -57,8 +57,7 @@ bool bt_send_pack(uint8_t *pData, int Len) {
   int byte_to_send;
   int send_index;
   uint32_t total_send;
-
-  ESP_LOGI(TAG, "BT Data step1");
+  uint8_t retry;
   
   if(spp_file_handler < 0)
     return false;
@@ -67,13 +66,13 @@ bool bt_send_pack(uint8_t *pData, int Len) {
   byte_sent = 0;
   send_index = 0;
 
-  ESP_LOGI(TAG, "BT Data step2");
   while(Len > 0) {
     if(Len >= SPP_PACK_MAX_SIZE) 
       byte_to_send = SPP_PACK_MAX_SIZE;
     else
       byte_to_send = Len;
     ESP_LOGI(TAG, "BT send data:%d", byte_to_send);
+    retry = 5;
     do {
       cur_byte_sent = write (spp_file_handler, &pData[send_index], byte_to_send);
       if(cur_byte_sent == byte_to_send) {
@@ -81,6 +80,8 @@ bool bt_send_pack(uint8_t *pData, int Len) {
         break;
       }
       vTaskDelay( 20 / portTICK_RATE_MS );
+      if(retry-- == 0)
+        break;
     }while(1);
     
     Len = Len - byte_to_send;
@@ -112,33 +113,12 @@ void bt_send_protocal_data(uint8_t EventID, uint8_t OpCode, uint8_t *pData, int 
   int send_len;
   pack_buff[0] = EventID;
   pack_buff[1] = OpCode;
-  memcpy((uint8_t*)&pack_buff[2], pData, Len);
+  if(Len > 0)
+    memcpy((uint8_t*)&pack_buff[2], pData, Len);
   send_len = SetupPack(pack_buff, Len + 2, send_buff);
   bt_send_pack(send_buff, send_len);
   free(pack_buff);
   free(send_buff);
-}
-
-/**
-  * @brief  Bluetooth receive data process thread
-  * @retval None
-  */
-static void bt_data_process_thread(void *arg)
-{
-  int len;
-  static const char *RX_TASK_TAG = "BT_RX_TASK";
-  uint8_t eventId;
-  uint8_t opcode;
-  uint8_t* process_buff = (uint8_t*) malloc(512);
-  while (1) {
-    xQueueReceive(process_data_push_queue, &len, 300 / portTICK_RATE_MS);
-    if(Parse(bt_recv_buff, &bt_recv_head, &bt_recv_tail, sizeof(bt_recv_buff), process_buff) > 0) {
-      eventId = process_buff[8];
-      opcode = process_buff[9];
-      bt_command_process(eventId, opcode);
-    }
-  }
-  free(process_buff);
 }
 
 /**
@@ -154,7 +134,7 @@ static int bt_push_data(uint8_t *pData, int Len) {
   
   data_pushed = 0;
   for(i=0;i<Len;i++) {
-    next_head = bt_recv_head + 1 % sizeof(bt_recv_buff);
+    next_head = (bt_recv_head + 1) % sizeof(bt_recv_buff);
     if(next_head == bt_recv_tail)
       break;
     bt_recv_buff[bt_recv_head] = pData[i];
@@ -240,7 +220,7 @@ static void spp_read_thread(void * param)
         }
         else if(size > 0) {
           push_size = bt_push_data(spp_data, size);
-          xQueueSend(process_data_push_queue, (void*)&push_size, 10 / portTICK_RATE_MS);
+          //xQueueSend(process_data_push_queue, (void*)&push_size, 10 / portTICK_RATE_MS);
         }
     } while (1);
     vTaskDelete(NULL);
@@ -282,7 +262,7 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_SRV_OPEN_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_SRV_OPEN_EVT");
-        xTaskCreate(spp_read_thread, "bt receive thread", 8192, param->srv_open.fd, configMAX_PRIORITIES, NULL);
+        xTaskCreate(spp_read_thread, "bt receive thread", 8192 * 2, (void*)param->srv_open.fd, configMAX_PRIORITIES, NULL);
         break;
     default:
         break;
@@ -357,6 +337,5 @@ void bluetooth_init(void)
   esp_bt_pin_code_t pin_code;
   esp_bt_gap_set_pin(pin_type, 0, pin_code);
 
-  process_data_push_queue = xQueueCreate(1, sizeof(int));
-  xTaskCreate(bt_data_process_thread, "bt_data_process", 8192, NULL, configMAX_PRIORITIES, NULL);
+  //process_data_push_queue = xQueueCreate(1, sizeof(int));
 }

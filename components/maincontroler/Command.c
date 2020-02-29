@@ -15,6 +15,7 @@
 #include "../../main/protocal.h"
 #include "../../main/uart.h"
 #include "Command.h"
+#include "CMD_01.h"
 #include "CMD_07.h"
 #include "CMD_09.h"
 #include "CMD_0B.h"
@@ -26,10 +27,13 @@ static uint8_t command_table_count;
 static uint8_t process_buff[1024];
 
 static const strHMICommand hmi_command_table[] = {
+  {EID_GCODE_REQ,       0x00, cmd_0100_process, cmd_0100_reack},
   {EID_STATUS_REQ,      0x01, cmd_0701_process, cmd_0701_reack},
+  {EID_STATUS_REQ,      0x0E, cmd_070E_process, cmd_070E_reack},
   {EID_MOVEMENT_REQ,    0x01, cmd_0B01_process, cmd_0B01_reack},
   {EID_MOVEMENT_REQ,    0x02, cmd_0B02_process, cmd_0B02_reack},
   {EID_MOVEMENT_REQ,    0x03, cmd_0B03_process, cmd_0B03_reack},
+  {EID_MOVEMENT_REQ,    0x04, cmd_0B04_process, cmd_0B04_reack},
   {EID_SETTING_REQ,     0x0a, cmd_090A_process, cmd_090A_reack},
   {EID_SETTING_REQ,     0x0b, cmd_090B_process, cmd_090B_reack},
   {EID_SETTING_REQ,     0x0c, cmd_090C_process, cmd_090C_reack},
@@ -44,6 +48,8 @@ void GeneralReack(uint8_t EventID, uint8_t Opcode, uint8_t Result) {
   uint8_t* tmp_buff = (uint8_t*) malloc(32);
   uint8_t* pack_buff = (uint8_t*) malloc(128);
 
+  vTaskDelay( 200 / portTICK_RATE_MS );
+
   // EventID
   tmp_buff[i++] = EventID;
 
@@ -53,7 +59,7 @@ void GeneralReack(uint8_t EventID, uint8_t Opcode, uint8_t Result) {
   // Result
   tmp_buff[i++] = Result;
 
-  send_len = SetupPack(tmp_buff, i, pack_buff);
+  send_len = SetupPack2(tmp_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
   free(pack_buff);
@@ -66,7 +72,8 @@ void hmi_command_init() {
 
 void hmi_command_process(uint8_t EventID, uint8_t Opcode) {
   int i;
-  ESP_LOGI(TAG, "Event id:%02X, Opcode:%02X", EventID, Opcode);
+  if((EventID != 0x07) && (Opcode != 0x01))
+    ESP_LOGI(TAG, "Event id:%02X, Opcode:%02X", EventID, Opcode);
   for(i=0;i<command_table_count;i++) {
     if((hmi_command_table[i].EventID == EventID) && (hmi_command_table[i].EventOpcode == Opcode)) {
       hmi_command_table[i].pProcessFun((void*)process_buff);

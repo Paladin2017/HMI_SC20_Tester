@@ -27,7 +27,32 @@ void cmd_090A_process(void *pPara) {
  *  @retval None
  */
 void cmd_090A_reack(void *pPara) {
-  GeneralReack(0x09, 0x0A, 0);
+  int send_len;
+  uint8_t* tmp_buff = (uint8_t*) malloc(128);
+  uint8_t* pack_buff = (uint8_t*) malloc(128);
+  uint16_t i = 0;
+  uint16_t j;
+  
+  uint32_t u32Value;
+  
+  // EventID
+  tmp_buff[i++] = EID_SETTING_RESP;
+
+  // Opcode
+  tmp_buff[i++] = EID_SETTING_RESP;
+
+  // result
+  tmp_buff[i++] = 0;
+  
+  u32Value = (uint32_t) (20 * 1000.0f);
+  BITS32_TO_BYTES(u32Value, tmp_buff, i);
+
+  send_len = SetupPack2(tmp_buff, i, pack_buff);
+
+  uart_send_pack(pack_buff, send_len);
+
+  free(pack_buff);
+  free(tmp_buff);
 }
 
 /*  @brief  Command process
@@ -42,7 +67,7 @@ void cmd_090B_process(void *pPara) {
  *  @retval None
  */
 void cmd_090B_reack(void *pPara) {
-  GeneralReack(0x09, 0x0B, 0);
+  GeneralReack(EID_SETTING_RESP, 0x0B, 0);
 }
 
 /*  @brief  Command process
@@ -57,7 +82,7 @@ void cmd_090C_process(void *pPara) {
  *  @retval None
  */
 void cmd_090C_reack(void *pPara) {
-  GeneralReack(0x09, 0x0C, 0);
+  GeneralReack(EID_SETTING_RESP, 0x0C, 0);
 }
 
 /*  @brief  Command process
@@ -72,7 +97,7 @@ void cmd_090D_process(void *pPara) {
  *  @retval None
  */
 void cmd_090D_reack(void *pPara) {
-  GeneralReack(0x09, 0x0D, 0);
+  GeneralReack(EID_SETTING_RESP, 0x0D, 0);
 }
 
 /*  @brief  Command process
@@ -138,7 +163,7 @@ void cmd_0914_reack(void *pPara) {
   int32Value = (int32_t) (0 *1000.0f);
   BITS32_TO_BYTES(int32Value, tmp_buff, i);
 
-  send_len = SetupPack(tmp_buff, i, pack_buff);
+  send_len = SetupPack2(tmp_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
 

@@ -27,7 +27,7 @@ void cmd_0B01_process(void *pPara) {
  *  @retval None
  */
 void cmd_0B01_reack(void *pPara) {
-  GeneralReack(0x0B, 0x01, 0);
+  GeneralReack(EID_MOVEMENT_RESP, 0x01, 0);
 }
 
 /*  @brief  Command process
@@ -42,7 +42,7 @@ void cmd_0B02_process(void *pPara) {
  *  @retval None
  */
 void cmd_0B02_reack(void *pPara) {
-  GeneralReack(0x0B, 0x02, 0);
+  GeneralReack(EID_MOVEMENT_RESP, 0x02, 0);
 }
 
 /*  @brief  Command process
@@ -57,6 +57,22 @@ void cmd_0B03_process(void *pPara) {
  *  @retval None
  */
 void cmd_0B03_reack(void *pPara) {
-  GeneralReack(0x0B, 0x03, 0);
+  GeneralReack(EID_MOVEMENT_RESP, 0x03, 0);
 }
+
+/*  @brief  Command process
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */ 
+void cmd_0B04_process(void *pPara) {
+}
+
+/*  @brief  Specific command reack
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */
+void cmd_0B04_reack(void *pPara) {
+  GeneralReack(EID_MOVEMENT_RESP, 0x04, 0);
+}
+
 

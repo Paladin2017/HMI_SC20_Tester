@@ -13,13 +13,12 @@
   * @param  Len:The length of the data
   * @retval None
   */
-void Cmd_0D01_Process(void *pPara) {
+void Cmd_0D00_Process(void *pPara) {
     uint8_t const *jpg_data_ptr;
     uint32_t data_index;
     uint32_t byte_to_send;
     uint32_t data_size;
     uint32_t max_send_len = 512;
-    uint8_t* tmp_Buff = (uint8_t*) malloc(512);
     
     // Step1 Start Pack
     bt_send_protocal_data(S_CAMERA_IMG_ACK, 0, NULL, 0);
@@ -39,8 +38,6 @@ void Cmd_0D01_Process(void *pPara) {
         data_size = data_size - byte_to_send;
     }
     //Step3 End Pack
-    tmp_Buff[0] = S_CAMERA_IMG_ACK;
-    tmp_Buff[1] = 2;
     bt_send_protocal_data(S_CAMERA_IMG_ACK, 2, NULL, 0);
 }
 

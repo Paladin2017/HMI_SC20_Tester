@@ -10,7 +10,6 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_log.h"
-#include "esp_bt_device.h"
 #include "string.h"
 #include "Command.h"
 #include "../../main/protocal.h"
@@ -19,51 +18,40 @@
 /*  @brief  Command process
  *  @param  pPara:The pointer to the private process buffer
  *  @retval None
- */
-void cmd_0D07_process(void *pPara) {
-  
+ */ 
+void cmd_0100_process(void *pPara) {
 }
 
 /*  @brief  Specific command reack
  *  @param  pPara:The pointer to the private process buffer
  *  @retval None
  */
-void cmd_0D07_reack(void *pPara) {
+void cmd_0100_reack(void *pPara) {
+  int send_len;
+  uint8_t* tmp_buff = (uint8_t*) malloc(128);
+  uint8_t* pack_buff = (uint8_t*) malloc(128);
   uint16_t i = 0;
   uint16_t j;
-  int send_len;
-  esp_err_t ret;
-  uint8_t* tmp_buff = (uint8_t*) malloc(32);
-  uint8_t* mac = (uint8_t*) malloc(32);
-  uint8_t* pack_buff = (uint8_t*) malloc(128);
+  char *string_gcode =  (char*) malloc(32);
 
-  for(j=0;j<10;j++) {
-    ret = esp_read_mac(mac, ESP_MAC_BT);
-    if(ret == ESP_OK)
+  // EventID
+  tmp_buff[i++] = EID_GCODE_RESP;
+
+  // "ok"
+  strcpy(string_gcode, "ok\r\n");
+  for(j=0;j<strlen(string_gcode);j++)
+  {
+    tmp_buff[i++] = string_gcode[j];
+    if(string_gcode[j] == 0)
       break;
   }
   
-  // EventID
-  tmp_buff[i++] = EID_LAS_CAM_OP_RESP;
-
-  // operation code
-  tmp_buff[i++] = 0x07;
-
-  // Result
-  if(ret != ESP_OK)
-    tmp_buff[i++] = 2;
-  else
-    tmp_buff[i++] = 0;
-  // Mac
-  
-  for (int j = 0; j < 6; j++) {
-    tmp_buff[i++] = mac[j];
-  }
-
   send_len = SetupPack2(tmp_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
+
   free(pack_buff);
   free(tmp_buff);
+
 }
 

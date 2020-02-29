@@ -7,5 +7,7 @@ extern void cmd_0B02_process(void *pPara);
 extern void cmd_0B02_reack(void *pPara);
 extern void cmd_0B03_process(void *pPara);
 extern void cmd_0B03_reack(void *pPara);
+extern void cmd_0B04_process(void *pPara);
+extern void cmd_0B04_reack(void *pPara);
 
 #endif

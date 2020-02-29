@@ -15,6 +15,7 @@
 #include "driver/gpio.h"
 #include "uart.h"
 #include "bluetooth.h"
+#include "DataProcess.h"
 #include "../components/maincontroler/Command.h"
 #include "../components/camera/Command.h"
 
@@ -22,6 +23,7 @@ void app_main(void)
 {
   bt_command_init();
   hmi_command_init();
+  data_process_init();
   uart_init();
   bluetooth_init();
 }

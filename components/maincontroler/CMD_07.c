@@ -96,7 +96,7 @@ void cmd_0701_reack(void *pPara) {
   //status_buff[i++] = 0x96;
   status_buff[i++] = 0x03;
 
-  send_len = SetupPack(status_buff, i, pack_buff);
+  send_len = SetupPack2(status_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
 
@@ -140,11 +140,55 @@ void cmd_0702_reack(void *pPara) {
   tmp = (int32_t) (0);
   BITS32_TO_BYTES(tmp, status_buff, i);
 
-  send_len = SetupPack(status_buff, i, pack_buff);
+  send_len = SetupPack2(status_buff, i, pack_buff);
 
   uart_send_pack(pack_buff, send_len);
 
   free(pack_buff);
   free(status_buff);
+}
+
+/*  @brief  Command process
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */ 
+void cmd_070E_process(void *pPara) {
+  
+}
+
+/*  @brief  Specific command reack
+ *  @param  pPara:The pointer to the private process buffer
+ *  @retval None
+ */
+void cmd_070E_reack(void *pPara) {
+  int32_t tmp;
+  uint16_t i = 0;
+  int send_len;
+  uint8_t* temp_buff = (uint8_t*) malloc(128);
+  uint8_t* pack_buff = (uint8_t*) malloc(128);
+
+  // EventID
+  temp_buff[i++] = EID_STATUS_RESP;
+
+  // operation code
+  temp_buff[i++] = 0x0E;
+
+  temp_buff[i++] = 0;
+
+  // number
+  temp_buff[i++] = 0;
+  // state
+  temp_buff[i++] = 0;
+
+  BITS32_TO_BYTES(0, temp_buff, i);
+  BITS32_TO_BYTES(0, temp_buff, i);
+  BITS32_TO_BYTES(0, temp_buff, i);
+
+  send_len = SetupPack2(temp_buff, i, pack_buff);
+
+  uart_send_pack(pack_buff, send_len);
+
+  free(pack_buff);
+  free(temp_buff);
 }
 
