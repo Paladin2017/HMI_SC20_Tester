@@ -20,6 +20,8 @@
 #include "CMD_09.h"
 #include "CMD_0B.h"
 #include "CMD_0D.h"
+#include "CMD_A9.h"
+
 
 static const char* TAG = "Main Controler";
 
@@ -39,7 +41,11 @@ static const strHMICommand hmi_command_table[] = {
   {EID_SETTING_REQ,     0x0c, cmd_090C_process, cmd_090C_reack},
   {EID_SETTING_REQ,     0x0d, cmd_090D_process, cmd_090D_reack},
   {EID_SETTING_REQ,     0x14, cmd_0914_process, cmd_0914_reack},
-  {EID_LAS_CAM_OP_REQ,  0x07, cmd_0D07_process, cmd_0D07_reack}
+  {EID_LAS_CAM_OP_REQ,  0x07, cmd_0D07_process, cmd_0D07_reack},
+  {EID_UPGRADE_REQ,     0x00, cmd_A900_process, cmd_A900_reack},
+  {EID_UPGRADE_REQ,     0x01, cmd_A901_process, cmd_A901_reack},
+  {EID_UPGRADE_REQ,     0x02, cmd_A902_process, cmd_A902_reack},
+  {EID_UPGRADE_REQ,     0x03, cmd_A903_process, cmd_A903_reack}
 };
 
 void GeneralReack(uint8_t EventID, uint8_t Opcode, uint8_t Result) {

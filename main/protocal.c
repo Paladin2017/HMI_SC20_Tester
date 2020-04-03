@@ -40,7 +40,7 @@ int SetupPack(uint8_t *pSourceData, uint16_t SrcLen, uint8_t *pDesData) {
 	pDesData[i++] = 0xaa;
 	pDesData[i++] = 0x55;
 	pDesData[i++] = (uint8_t)(SrcLen >> 8);
-	pDesData[i++] = (uint8_t)(SrcLen);;
+	pDesData[i++] = (uint8_t)(SrcLen);
 	pDesData[i++] = 0x00;
 	pDesData[i++] = pDesData[2] ^ pDesData[3];
 	

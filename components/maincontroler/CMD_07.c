@@ -94,7 +94,7 @@ void cmd_0701_reack(void *pPara) {
 
   // executor type
   //status_buff[i++] = 0x96;
-  status_buff[i++] = 0x03;
+  status_buff[i++] = 0x99;
 
   send_len = SetupPack2(status_buff, i, pack_buff);
 
